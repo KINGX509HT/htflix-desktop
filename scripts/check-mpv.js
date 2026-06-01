@@ -17,7 +17,7 @@ const MPV_ROOT = path.join(ROOT, 'resources', 'mpv');
 // Keep in sync with the "build" block of package.json.
 const TARGETS = {
   mac:   ['darwin-arm64'],
-  win:   ['win32-x64', 'win32-ia32'],
+  win:   ['win32-x64'],
   linux: ['linux-x64'],
 };
 
