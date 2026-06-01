@@ -1,0 +1,91 @@
+{
+  "name": "htflix-desktop",
+  "version": "1.0.0",
+  "description": "HTFLIX Desktop App — Windows & Mac",
+  "main": "main.js",
+  "author": "HTFLIX",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "check-mpv": "node scripts/check-mpv.js",
+    "dist":       "node scripts/check-mpv.js --win --mac --linux && electron-builder --win --mac --linux",
+    "dist:win":   "node scripts/check-mpv.js --win   && electron-builder --win",
+    "dist:mac":   "node scripts/check-mpv.js --mac   && electron-builder --mac",
+    "dist:linux": "node scripts/check-mpv.js --linux && electron-builder --linux"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "git+https://github.com/castlabs/electron-releases.git#v42.0.0+wvcus",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.htflix.desktop",
+    "productName": "HTFLIX",
+    "copyright": "Copyright © 2025 HTFLIX",
+    "directories": {
+      "output": "dist-build"
+    },
+    "electronDownload": {
+      "version": "42.0.0+wvcus",
+      "mirror": "https://github.com/castlabs/electron-releases/releases/download/",
+      "customDir": "v42.0.0+wvcus"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "overlay-preload.js",
+      "mpv-controller.js",
+      "external-player.html",
+      "splash.html",
+      "config.json",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/mpv",
+        "to":   "mpv",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64", "ia32"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["arm64"] }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.entertainment",
+      "darkModeSupport": true,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png",
+      "category": "Video"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "HTFLIX"
+    },
+    "dmg": {
+      "title": "HTFLIX Installer",
+      "background": null,
+      "window": { "width": 540, "height": 380 }
+    },
+    "publish": null
+  }
+}

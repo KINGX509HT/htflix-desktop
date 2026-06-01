@@ -1,0 +1,18 @@
+{
+  "htflixUrl":            "https://htflix.com",
+  "windowWidth":          1440,
+  "windowHeight":         900,
+  "minWidth":             1024,
+  "minHeight":            640,
+  "startMaximized":       false,
+  "hardwareAcceleration": true,
+  "autoHideMenuBar":      true,
+  "rememberWindowSize":   true,
+  "iptvUserAgent":        "VLC/3.0.20 LibVLC/3.0.20",
+  "iptvHosts": [
+    "line.trxdnscloud.ru",
+    "activationpanel.ru",
+    "cdn.ghosthome.ca",
+    "216.128.155.28"
+  ]
+}

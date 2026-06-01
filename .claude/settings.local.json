@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check main.js)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('config.json'\\)\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('package.json'\\)\\)\")",
+      "Bash(gh release *)",
+      "WebFetch(domain:github.com)",
+      "Bash(node --check preload.js)",
+      "Bash(node --check mpv-controller.js)",
+      "Bash(sw_vers -productVersion)",
+      "Bash(echo \"macos: $\\(sw_vers -productVersion\\)\")",
+      "Read(//Applications/mpv.app/Contents/MacOS/**)",
+      "Read(//Applications/IINA.app/Contents/MacOS/**)",
+      "Bash(command -v mpv)",
+      "WebFetch(domain:mpv.io)",
+      "WebFetch(domain:laboratory.stolendata.net)",
+      "Bash(mkdir -p resources/mpv/darwin-arm64)",
+      "Bash(curl -fL -o mpv-arm64-latest.tar.gz 'https://laboratory.stolendata.net/~djinn/mpv_osx/mpv-arm64-latest.tar.gz')",
+      "Bash(tar -tzf mpv-arm64-latest.tar.gz)",
+      "Bash(tar -xzf mpv-arm64-latest.tar.gz)",
+      "Bash(mv mpv-arm64-0.40.0/mpv.app/Contents/MacOS/* . && rm -rf mpv-arm64-0.40.0 && ls -la)",
+      "Bash(./resources/mpv/darwin-arm64/mpv --version)",
+      "Bash(xattr -l resources/mpv/darwin-arm64/mpv)",
+      "Bash(xattr -dr com.apple.quarantine resources/mpv/darwin-arm64/)",
+      "Bash(node -e \"const {findMpvBinary}=require\\('./mpv-controller'\\); console.log\\('found:', findMpvBinary\\(\\)\\);\")",
+      "Bash(kill -TERM 29948)"
+    ],
+    "additionalDirectories": [
+      "/Users/clarenskyadme/Downloads/htflix-desktop/resources/mpv/darwin-arm64/mpv-arm64-0.40.0/mpv.app/Contents/MacOS"
+    ]
+  }
+}

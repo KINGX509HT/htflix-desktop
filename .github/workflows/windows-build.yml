@@ -1,0 +1,85 @@
+name: Build Windows installer
+
+# Builds an unsigned Windows NSIS installer (.exe) for HTFLIX Desktop.
+# Trigger manually from the Actions tab, or on push to main / version tags.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          # Castlabs Electron is fetched from their GitHub releases by
+          # electron-builder's electronDownload config in package.json.
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '0'
+
+      - name: Download mpv for Windows
+        # Pulls a portable mpv build into resources/mpv/win32-x64/ so the
+        # check-mpv.js script + electron-builder extraResources both find it.
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $mpvDir = 'resources\mpv\win32-x64'
+          New-Item -ItemType Directory -Force -Path $mpvDir | Out-Null
+
+          # zhongfly's actively-maintained portable build (v3 = AVX2/SSE4.2)
+          $url = 'https://github.com/zhongfly/mpv-winbuild/releases/latest/download/mpv-x86_64-v3-latest-git.7z'
+          $archive = "$env:RUNNER_TEMP\mpv.7z"
+
+          Write-Host "Downloading mpv from $url"
+          Invoke-WebRequest -Uri $url -OutFile $archive -UseBasicParsing
+
+          Write-Host "Extracting to $mpvDir"
+          # Use 7zip (pre-installed on windows-latest)
+          & 'C:\Program Files\7-Zip\7z.exe' x $archive "-o$mpvDir" -y | Out-Null
+
+          # zhongfly archive contains mpv.exe + DLLs at root — verify
+          if (-not (Test-Path "$mpvDir\mpv.exe")) {
+            Write-Error "mpv.exe not found in extracted archive"
+            exit 1
+          }
+          Write-Host "mpv binary in place:"
+          Get-ChildItem $mpvDir | Select-Object Name, Length
+
+      - name: Build Windows installer
+        run: npm run dist:win
+        env:
+          # No code-signing certificate configured. Output is unsigned;
+          # SmartScreen will warn on first run but allow "Run anyway".
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Upload installer as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: htflix-windows-installer
+          path: |
+            dist-build/*.exe
+            dist-build/*.exe.blockmap
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach installer to release (only on tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-build/*.exe
+            dist-build/*.exe.blockmap
+          fail_on_unmatched_files: true
