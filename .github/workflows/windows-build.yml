@@ -33,26 +33,51 @@ jobs:
       - name: Download mpv for Windows
         # Pulls a portable mpv build into resources/mpv/win32-x64/ so the
         # check-mpv.js script + electron-builder extraResources both find it.
+        # Queries the GitHub API for the latest release because zhongfly
+        # publishes assets with date-stamped names (no static URL is stable).
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
           $mpvDir = 'resources\mpv\win32-x64'
           New-Item -ItemType Directory -Force -Path $mpvDir | Out-Null
 
-          # zhongfly's actively-maintained portable build (v3 = AVX2/SSE4.2)
-          $url = 'https://github.com/zhongfly/mpv-winbuild/releases/latest/download/mpv-x86_64-v3-latest-git.7z'
-          $archive = "$env:RUNNER_TEMP\mpv.7z"
+          Write-Host "Querying latest mpv release from zhongfly/mpv-winbuild..."
+          $headers = @{
+            'Accept'        = 'application/vnd.github+json'
+            'Authorization' = "Bearer $env:GH_TOKEN"
+            'User-Agent'    = 'htflix-desktop-ci'
+          }
+          $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/zhongfly/mpv-winbuild/releases/latest' -Headers $headers
 
-          Write-Host "Downloading mpv from $url"
-          Invoke-WebRequest -Uri $url -OutFile $archive -UseBasicParsing
+          # Prefer the v3 (AVX2) build for modern CPUs; fall back to base x86_64 build.
+          # Exclude debug-symbol archives.
+          $asset = $rel.assets | Where-Object { $_.name -like 'mpv-x86_64-v3-*.7z' -and $_.name -notlike '*dbgsym*' -and $_.name -notlike '*pdb*' } | Select-Object -First 1
+          if (-not $asset) {
+            $asset = $rel.assets | Where-Object { $_.name -like 'mpv-x86_64-*.7z' -and $_.name -notlike '*v3*' -and $_.name -notlike '*dbgsym*' -and $_.name -notlike '*pdb*' } | Select-Object -First 1
+          }
+          if (-not $asset) {
+            Write-Host "Available assets in latest release:"
+            $rel.assets | ForEach-Object { Write-Host "  - $($_.name)" }
+            Write-Error "No suitable mpv asset found in latest release"
+            exit 1
+          }
+
+          $sizeMb = [math]::Round($asset.size / 1MB, 1)
+          Write-Host "Selected asset: $($asset.name) ($sizeMb MB)"
+
+          $archive = "$env:RUNNER_TEMP\mpv.7z"
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $archive -UseBasicParsing
+          Write-Host "Downloaded to $archive"
 
           Write-Host "Extracting to $mpvDir"
-          # Use 7zip (pre-installed on windows-latest)
           & 'C:\Program Files\7-Zip\7z.exe' x $archive "-o$mpvDir" -y | Out-Null
 
-          # zhongfly archive contains mpv.exe + DLLs at root — verify
           if (-not (Test-Path "$mpvDir\mpv.exe")) {
-            Write-Error "mpv.exe not found in extracted archive"
+            Write-Host "mpv.exe NOT found at root — listing extracted tree:"
+            Get-ChildItem $mpvDir -Recurse | ForEach-Object { Write-Host $_.FullName }
+            Write-Error "mpv.exe missing after extraction"
             exit 1
           }
           Write-Host "mpv binary in place:"
